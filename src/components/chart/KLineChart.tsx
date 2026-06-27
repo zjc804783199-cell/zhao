@@ -147,8 +147,34 @@ export default function KLineChart({
       size?: number;
     }> = [];
 
-    if (showFractals && chanLunResult.fractals) {
-      for (const fractal of chanLunResult.fractals) {
+    if (showFractals && chanLunResult.strokes && chanLunResult.strokes.length > 0) {
+      const strokeFractals: Array<{
+        index: number;
+        type: 'top' | 'bottom';
+        price: number;
+      }> = [];
+
+      for (let i = 0; i < chanLunResult.strokes.length; i++) {
+        const stroke = chanLunResult.strokes[i];
+        const startType: 'top' | 'bottom' = stroke.direction === 'up' ? 'bottom' : 'top';
+        const endType: 'top' | 'bottom' = stroke.direction === 'up' ? 'top' : 'bottom';
+
+        if (i === 0) {
+          strokeFractals.push({
+            index: stroke.startIndex,
+            type: startType,
+            price: stroke.startPrice,
+          });
+        }
+
+        strokeFractals.push({
+          index: stroke.endIndex,
+          type: endType,
+          price: stroke.endPrice,
+        });
+      }
+
+      for (const fractal of strokeFractals) {
         if (fractal.index >= 0 && fractal.index < data.length) {
           markers.push({
             time: data[fractal.index].time as Time,
