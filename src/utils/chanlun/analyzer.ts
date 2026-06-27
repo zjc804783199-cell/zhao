@@ -1,46 +1,150 @@
 import type { KLineData, Fractal, Stroke, Segment, Center, BuySellPoint, ChanLunResult } from '../../types';
 
-export function identifyFractals(klines: KLineData[]): Fractal[] {
-  const fractals: Fractal[] = [];
-  if (klines.length < 5) return fractals;
+interface MergedKLine {
+  index: number;
+  high: number;
+  low: number;
+  open: number;
+  close: number;
+  time: number;
+}
 
-  for (let i = 2; i < klines.length - 2; i++) {
-    const prev2 = klines[i - 2];
-    const prev1 = klines[i - 1];
+function handleInclusion(klines: KLineData[]): MergedKLine[] {
+  if (klines.length < 2) {
+    return klines.map((k, i) => ({
+      index: i,
+      high: k.high,
+      low: k.low,
+      open: k.open,
+      close: k.close,
+      time: k.time,
+    }));
+  }
+
+  const result: MergedKLine[] = [
+    {
+      index: 0,
+      high: klines[0].high,
+      low: klines[0].low,
+      open: klines[0].open,
+      close: klines[0].close,
+      time: klines[0].time,
+    },
+  ];
+
+  let direction: 'up' | 'down' | null = null;
+
+  for (let i = 1; i < klines.length; i++) {
     const curr = klines[i];
-    const next1 = klines[i + 1];
-    const next2 = klines[i + 2];
+    const last = result[result.length - 1];
 
-    const isTop =
-      curr.high > prev1.high &&
-      curr.high > next1.high &&
-      curr.high > prev2.high &&
-      curr.high > next2.high &&
-      prev1.high > prev2.high &&
-      next1.high > next2.high;
+    const isInclusion = curr.high <= last.high && curr.low >= last.low;
+    const isReverseInclusion = curr.high >= last.high && curr.low <= last.low;
+
+    if (result.length < 2) {
+      if (isInclusion || isReverseInclusion) {
+        if (curr.close >= curr.open) {
+          result[result.length - 1] = {
+            ...last,
+            high: Math.max(last.high, curr.high),
+            low: Math.max(last.low, curr.low),
+            index: i,
+            close: curr.close,
+            time: curr.time,
+          };
+        } else {
+          result[result.length - 1] = {
+            ...last,
+            high: Math.min(last.high, curr.high),
+            low: Math.min(last.low, curr.low),
+            index: i,
+            close: curr.close,
+            time: curr.time,
+          };
+        }
+        continue;
+      } else {
+        result.push({
+          index: i,
+          high: curr.high,
+          low: curr.low,
+          open: curr.open,
+          close: curr.close,
+          time: curr.time,
+        });
+        continue;
+      }
+    }
+
+    const secondLast = result[result.length - 2];
+    if (!direction) {
+      direction = last.high > secondLast.high ? 'up' : 'down';
+    }
+
+    if (isInclusion || isReverseInclusion) {
+      if (direction === 'up') {
+        result[result.length - 1] = {
+          ...last,
+          high: Math.max(last.high, curr.high),
+          low: Math.max(last.low, curr.low),
+          index: i,
+          close: curr.close,
+          time: curr.time,
+        };
+      } else {
+        result[result.length - 1] = {
+          ...last,
+          high: Math.min(last.high, curr.high),
+          low: Math.min(last.low, curr.low),
+          index: i,
+          close: curr.close,
+          time: curr.time,
+        };
+      }
+    } else {
+      const newDirection = curr.high > last.high ? 'up' : 'down';
+      if (newDirection !== direction) {
+        direction = newDirection;
+      }
+      result.push({
+        index: i,
+        high: curr.high,
+        low: curr.low,
+        open: curr.open,
+        close: curr.close,
+        time: curr.time,
+      });
+    }
+  }
+
+  return result;
+}
+
+function identifyFractalsFromMerged(merged: MergedKLine[]): Fractal[] {
+  const fractals: Fractal[] = [];
+  if (merged.length < 3) return fractals;
+
+  for (let i = 1; i < merged.length - 1; i++) {
+    const prev = merged[i - 1];
+    const curr = merged[i];
+    const next = merged[i + 1];
+
+    const isTop = curr.high > prev.high && curr.high > next.high;
+    const isBottom = curr.low < prev.low && curr.low < next.low;
 
     if (isTop) {
       fractals.push({
-        index: i,
+        index: curr.index,
         type: 'top',
         high: curr.high,
         low: curr.low,
         price: curr.high,
       });
-      continue;
     }
-
-    const isBottom =
-      curr.low < prev1.low &&
-      curr.low < next1.low &&
-      curr.low < prev2.low &&
-      curr.low < next2.low &&
-      prev1.low < prev2.low &&
-      next1.low < next2.low;
 
     if (isBottom) {
       fractals.push({
-        index: i,
+        index: curr.index,
         type: 'bottom',
         high: curr.high,
         low: curr.low,
@@ -52,21 +156,36 @@ export function identifyFractals(klines: KLineData[]): Fractal[] {
   return fractals;
 }
 
+export function identifyFractals(klines: KLineData[]): Fractal[] {
+  const merged = handleInclusion(klines);
+  return identifyFractalsFromMerged(merged);
+}
+
 export function generateStrokes(klines: KLineData[], fractals: Fractal[]): Stroke[] {
   const strokes: Stroke[] = [];
   if (fractals.length < 2) return strokes;
 
-  const validFractals: Fractal[] = [fractals[0]];
+  const validFractals: Fractal[] = [];
 
-  for (let i = 1; i < fractals.length; i++) {
+  for (let i = 0; i < fractals.length; i++) {
     const curr = fractals[i];
+
+    if (validFractals.length === 0) {
+      validFractals.push(curr);
+      continue;
+    }
+
     const last = validFractals[validFractals.length - 1];
 
     if (curr.type === last.type) {
-      if (curr.type === 'top' && curr.price > last.price) {
-        validFractals[validFractals.length - 1] = curr;
-      } else if (curr.type === 'bottom' && curr.price < last.price) {
-        validFractals[validFractals.length - 1] = curr;
+      if (curr.type === 'top') {
+        if (curr.price > last.price) {
+          validFractals[validFractals.length - 1] = curr;
+        }
+      } else {
+        if (curr.price < last.price) {
+          validFractals[validFractals.length - 1] = curr;
+        }
       }
       continue;
     }
@@ -77,15 +196,21 @@ export function generateStrokes(klines: KLineData[], fractals: Fractal[]): Strok
     validFractals.push(curr);
   }
 
+  if (validFractals.length < 2) return strokes;
+
   for (let i = 0; i < validFractals.length - 1; i++) {
     const start = validFractals[i];
     const end = validFractals[i + 1];
 
     let high = Math.max(start.high, end.high);
     let low = Math.min(start.low, end.low);
-    for (let j = start.index; j <= end.index; j++) {
-      high = Math.max(high, klines[j].high);
-      low = Math.min(low, klines[j].low);
+    const startIdx = Math.min(start.index, end.index);
+    const endIdx = Math.max(start.index, end.index);
+    for (let j = startIdx; j <= endIdx; j++) {
+      if (j >= 0 && j < klines.length) {
+        high = Math.max(high, klines[j].high);
+        low = Math.min(low, klines[j].low);
+      }
     }
 
     strokes.push({
@@ -108,61 +233,75 @@ export function generateSegments(strokes: Stroke[]): Segment[] {
 
   let i = 0;
   while (i < strokes.length - 2) {
-    const first = strokes[i];
-    const second = strokes[i + 1];
-    const third = strokes[i + 2];
+    const s1 = strokes[i];
+    const s2 = strokes[i + 1];
+    const s3 = strokes[i + 2];
 
-    if (
-      first.direction === second.direction ||
-      second.direction === third.direction
-    ) {
+    if (s1.direction === s2.direction || s2.direction === s3.direction) {
       i++;
       continue;
     }
 
-    const direction = first.direction;
-    let startIndex = first.startIndex;
-    let endIndex = third.endIndex;
-    let startPrice = first.startPrice;
-    let endPrice = third.endPrice;
-    let high = Math.max(first.high, second.high, third.high);
-    let low = Math.min(first.low, second.low, third.low);
+    const direction = s1.direction;
+    let segStartIdx = s1.startIndex;
+    let segEndIdx = s3.endIndex;
+    let segStartPrice = s1.startPrice;
+    let segEndPrice = s3.endPrice;
+    let segHigh = Math.max(s1.high, s2.high, s3.high);
+    let segLow = Math.min(s1.low, s2.low, s3.low);
 
     let j = i + 3;
-    let lastEnd = third.endIndex;
+    let lastStroke = s3;
 
     while (j < strokes.length) {
       const curr = strokes[j];
 
       if (direction === 'up') {
-        if (curr.direction === 'down' && curr.endPrice < second.low) {
+        if (curr.direction === 'down' && curr.endPrice < s2.low) {
           break;
         }
+        if (curr.direction === 'up' && curr.endPrice > lastStroke.endPrice) {
+          lastStroke = curr;
+          segEndIdx = curr.endIndex;
+          segEndPrice = curr.endPrice;
+          segHigh = Math.max(segHigh, curr.high);
+          segLow = Math.min(segLow, curr.low);
+          j++;
+          continue;
+        }
       } else {
-        if (curr.direction === 'up' && curr.endPrice > second.high) {
+        if (curr.direction === 'up' && curr.endPrice > s2.high) {
           break;
+        }
+        if (curr.direction === 'down' && curr.endPrice < lastStroke.endPrice) {
+          lastStroke = curr;
+          segEndIdx = curr.endIndex;
+          segEndPrice = curr.endPrice;
+          segHigh = Math.max(segHigh, curr.high);
+          segLow = Math.min(segLow, curr.low);
+          j++;
+          continue;
         }
       }
 
-      high = Math.max(high, curr.high);
-      low = Math.min(low, curr.low);
-      endIndex = curr.endIndex;
-      endPrice = curr.endPrice;
-      lastEnd = curr.endIndex;
+      segHigh = Math.max(segHigh, curr.high);
+      segLow = Math.min(segLow, curr.low);
+      segEndIdx = curr.endIndex;
+      segEndPrice = curr.endPrice;
       j++;
     }
 
     segments.push({
-      startIndex,
-      endIndex,
+      startIndex: segStartIdx,
+      endIndex: segEndIdx,
       direction: direction as 'up' | 'down',
-      startPrice,
-      endPrice,
-      high,
-      low,
+      startPrice: segStartPrice,
+      endPrice: segEndPrice,
+      high: segHigh,
+      low: segLow,
     });
 
-    i = j - 1 < i + 3 ? i + 3 : j - 1;
+    i = j - 1 > i + 2 ? j - 1 : i + 3;
   }
 
   return segments;
@@ -173,73 +312,56 @@ export function identifyCenters(strokes: Stroke[]): Center[] {
   if (strokes.length < 5) return centers;
 
   let i = 0;
-  while (i < strokes.length - 4) {
+  while (i <= strokes.length - 3) {
     const z1 = strokes[i];
     const z2 = strokes[i + 1];
     const z3 = strokes[i + 2];
 
-    const gg = Math.min(z1.high, z3.high);
-    const dd = Math.max(z1.low, z3.low);
-
-    if (gg <= dd) {
+    if (z1.direction === z2.direction || z2.direction === z3.direction) {
       i++;
       continue;
     }
 
-    let centerHigh = gg;
-    let centerLow = dd;
+    const zg = Math.min(z1.high, z3.high);
+    const zd = Math.max(z1.low, z3.low);
+
+    if (zg <= zd) {
+      i++;
+      continue;
+    }
+
+    let centerHigh = zg;
+    let centerLow = zd;
     let startIdx = z1.startIndex;
     let endIdx = z3.endIndex;
-    let level = 1;
+    let strokeCount = 3;
 
     let j = i + 3;
-    let extendCount = 0;
-    while (j < strokes.length - 1) {
-      const nextStroke = strokes[j];
-      const nextStroke2 = strokes[j + 1];
+    while (j < strokes.length) {
+      const next = strokes[j];
+      const overlapHigh = Math.min(centerHigh, next.high);
+      const overlapLow = Math.max(centerLow, next.low);
 
-      if (nextStroke.direction === z2.direction) {
-        const overlapHigh = Math.min(centerHigh, nextStroke.high);
-        const overlapLow = Math.max(centerLow, nextStroke.low);
-
-        if (overlapHigh > overlapLow) {
-          centerHigh = Math.min(centerHigh, nextStroke.high);
-          centerLow = Math.max(centerLow, nextStroke.low);
-          endIdx = nextStroke.endIndex;
-          extendCount++;
-          j++;
-          continue;
-        }
+      if (overlapHigh > overlapLow) {
+        centerHigh = Math.min(centerHigh, next.high);
+        centerLow = Math.max(centerLow, next.low);
+        endIdx = next.endIndex;
+        strokeCount++;
+        j++;
+      } else {
+        break;
       }
-
-      if (nextStroke2) {
-        const overlapHigh = Math.min(centerHigh, nextStroke2.high);
-        const overlapLow = Math.max(centerLow, nextStroke2.low);
-
-        if (overlapHigh > overlapLow) {
-          centerHigh = Math.min(centerHigh, nextStroke2.high);
-          centerLow = Math.max(centerLow, nextStroke2.low);
-          endIdx = nextStroke2.endIndex;
-          extendCount++;
-          j += 2;
-          continue;
-        }
-      }
-
-      break;
     }
 
-    if (extendCount >= 6) {
-      level = 2;
+    if (strokeCount >= 5) {
+      centers.push({
+        startIndex: startIdx,
+        endIndex: endIdx,
+        high: centerHigh,
+        low: centerLow,
+        level: strokeCount >= 9 ? 2 : 1,
+      });
     }
-
-    centers.push({
-      startIndex: startIdx,
-      endIndex: endIdx,
-      high: centerHigh,
-      low: centerLow,
-      level,
-    });
 
     i = j;
   }
@@ -255,66 +377,61 @@ export function identifyBuySellPoints(
   const points: BuySellPoint[] = [];
   if (centers.length === 0 || strokes.length < 5) return points;
 
-  for (let c = 0; c < centers.length; c++) {
-    const center = centers[c];
+  for (let ci = 0; ci < centers.length; ci++) {
+    const center = centers[ci];
 
-    const strokesInCenter: Stroke[] = [];
-    for (const s of strokes) {
-      if (s.startIndex >= center.startIndex && s.endIndex <= center.endIndex) {
-        strokesInCenter.push(s);
-      }
-    }
-
-    if (strokesInCenter.length < 3) continue;
-
-    const centerStrokesBefore: Stroke[] = [];
+    const strokesBefore: Stroke[] = [];
     for (const s of strokes) {
       if (s.endIndex < center.startIndex) {
-        centerStrokesBefore.push(s);
+        strokesBefore.push(s);
       }
     }
 
-    if (centerStrokesBefore.length >= 2) {
-      const lastEntering = centerStrokesBefore[centerStrokesBefore.length - 1];
-      if (lastEntering.direction === 'down') {
-        const firstStroke = centerStrokesBefore[0];
-        const enteringHigh = lastEntering.high;
-        const enteringLow = lastEntering.low;
-        const prevLow = firstStroke.low;
+    const strokesAfter: Stroke[] = [];
+    for (const s of strokes) {
+      if (s.startIndex > center.endIndex) {
+        strokesAfter.push(s);
+      }
+    }
 
-        if (enteringLow < prevLow && enteringHigh < center.low) {
-          const buy1Index = lastEntering.endIndex;
-          if (buy1Index < klines.length) {
-            points.push({
-              index: buy1Index,
-              type: 'buy1',
-              price: lastEntering.endPrice,
-            });
-          }
+    if (strokesBefore.length >= 2) {
+      const lastBefore = strokesBefore[strokesBefore.length - 1];
+      const secondLastBefore = strokesBefore[strokesBefore.length - 2];
+
+      if (lastBefore.direction === 'down') {
+        if (lastBefore.endPrice < secondLastBefore.startPrice && lastBefore.endPrice < center.low) {
+          points.push({
+            index: lastBefore.endIndex,
+            type: 'buy1',
+            price: lastBefore.endPrice,
+          });
+        }
+      }
+
+      if (lastBefore.direction === 'up') {
+        if (lastBefore.endPrice > secondLastBefore.startPrice && lastBefore.endPrice > center.high) {
+          points.push({
+            index: lastBefore.endIndex,
+            type: 'sell1',
+            price: lastBefore.endPrice,
+          });
         }
       }
     }
 
-    const strokesAfterCenter: Stroke[] = [];
-    for (const s of strokes) {
-      if (s.startIndex > center.endIndex) {
-        strokesAfterCenter.push(s);
-      }
-    }
-
-    if (strokesAfterCenter.length >= 2) {
-      const firstAfter = strokesAfterCenter[0];
-      const secondAfter = strokesAfterCenter[1];
+    if (strokesAfter.length >= 2) {
+      const firstAfter = strokesAfter[0];
+      const secondAfter = strokesAfter[1];
 
       if (firstAfter.direction === 'up' && secondAfter.direction === 'down') {
-        if (secondAfter.endPrice > center.low && secondAfter.low > center.low) {
-          let hasBuy1 = false;
-          for (const p of points) {
-            if (p.type === 'buy1' && p.index < center.startIndex) {
-              hasBuy1 = true;
-              break;
-            }
-          }
+        if (secondAfter.low > center.high) {
+          points.push({
+            index: secondAfter.endIndex,
+            type: 'buy3',
+            price: secondAfter.endPrice,
+          });
+        } else if (secondAfter.low > center.low) {
+          const hasBuy1 = points.some(p => p.type === 'buy1' && p.index < center.startIndex);
           if (hasBuy1) {
             points.push({
               index: secondAfter.endIndex,
@@ -323,58 +440,22 @@ export function identifyBuySellPoints(
             });
           }
         }
-
-        if (secondAfter.low > center.high) {
-          points.push({
-            index: secondAfter.endIndex,
-            type: 'buy3',
-            price: secondAfter.endPrice,
-          });
-        }
       }
 
       if (firstAfter.direction === 'down' && secondAfter.direction === 'up') {
-        if (secondAfter.endPrice < center.high && secondAfter.high < center.high) {
-          let hasSell1 = false;
-          for (const p of points) {
-            if (p.type === 'sell1' && p.index < center.startIndex) {
-              hasSell1 = true;
-              break;
-            }
-          }
-          if (hasSell1) {
-            points.push({
-              index: secondAfter.endIndex,
-              type: 'sell2',
-              price: secondAfter.endPrice,
-            });
-          }
-        }
-
         if (secondAfter.high < center.low) {
           points.push({
             index: secondAfter.endIndex,
             type: 'sell3',
             price: secondAfter.endPrice,
           });
-        }
-      }
-    }
-
-    if (centerStrokesBefore.length >= 2) {
-      const lastEntering = centerStrokesBefore[centerStrokesBefore.length - 1];
-      if (lastEntering.direction === 'up') {
-        const firstStroke = centerStrokesBefore[0];
-        const enteringHigh = lastEntering.high;
-        const prevHigh = firstStroke.high;
-
-        if (enteringHigh > prevHigh && enteringHigh > center.high) {
-          const sell1Index = lastEntering.endIndex;
-          if (sell1Index < klines.length) {
+        } else if (secondAfter.high < center.high) {
+          const hasSell1 = points.some(p => p.type === 'sell1' && p.index < center.startIndex);
+          if (hasSell1) {
             points.push({
-              index: sell1Index,
-              type: 'sell1',
-              price: lastEntering.endPrice,
+              index: secondAfter.endIndex,
+              type: 'sell2',
+              price: secondAfter.endPrice,
             });
           }
         }
