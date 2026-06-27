@@ -3,10 +3,23 @@ import numpy as np
 from models.core import CoreMetrics, CrossAnalysis
 
 
+def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
+    """清洗DataFrame列名"""
+    if df is None:
+        return None
+    df = df.copy()
+    df.columns = df.columns.astype(str)
+    df.columns = df.columns.str.replace('\ufeff', '', regex=False)
+    df.columns = df.columns.str.strip()
+    return df
+
+
 class MetricsAnalyzer:
     def calculate_core_metrics(self, store_df: pd.DataFrame) -> CoreMetrics:
         if store_df is None or store_df.empty:
             return CoreMetrics()
+
+        store_df = _clean_df(store_df)
 
         total_gmv = store_df['支付金额'].sum()
         total_visitors = store_df['访客数'].sum()
@@ -50,12 +63,14 @@ class MetricsAnalyzer:
         result = CrossAnalysis()
 
         if ad_df is not None and not ad_df.empty:
+            ad_df = _clean_df(ad_df)
             result.paid_cost_total = round(ad_df['花费'].sum(), 2)
             result.paid_transaction_total = round(ad_df['总成交金额'].sum(), 2)
             result.avg_roas = round(ad_df['投入产出比'].mean(), 2)
             result.avg_cpc = round(ad_df['平均点击花费'].mean(), 2)
 
         if store_df is not None and not store_df.empty:
+            store_df = _clean_df(store_df)
             total_gmv = store_df['支付金额'].sum()
             if total_gmv > 0 and result.paid_transaction_total > 0:
                 result.paid_gmv_ratio = round(result.paid_transaction_total / total_gmv * 100, 2)
@@ -68,6 +83,8 @@ class MetricsAnalyzer:
     def analyze_traffic_concentration(self, product_df: pd.DataFrame) -> dict:
         if product_df is None or product_df.empty:
             return {'top5_ratio': 0, 'top10_ratio': 0, 'total_products': 0}
+
+        product_df = _clean_df(product_df)
 
         sorted_products = product_df.sort_values('访客数', ascending=False)
         total_visitors = sorted_products['访客数'].sum()
@@ -85,6 +102,8 @@ class MetricsAnalyzer:
     def analyze_ad_spend_trend(self, ad_df: pd.DataFrame) -> dict:
         if ad_df is None or ad_df.empty:
             return {'trend': 'stable', 'change': 0}
+
+        ad_df = _clean_df(ad_df)
 
         mid_idx = len(ad_df) // 2
         first_half_cost = ad_df.iloc[:mid_idx]['花费'].mean()
