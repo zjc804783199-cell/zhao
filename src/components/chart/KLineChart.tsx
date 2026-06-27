@@ -3,10 +3,12 @@ import {
   createChart,
   CandlestickSeries,
   LineSeries,
+  createSeriesMarkers,
   type IChartApi,
   type ISeriesApi,
   type CandlestickData,
   type Time,
+  type ISeriesMarkersPluginApi,
 } from 'lightweight-charts';
 import type { KLineData, ChanLunResult } from '../../types';
 
@@ -32,6 +34,7 @@ export default function KLineChart({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const strokeLineRef = useRef<ISeriesApi<'Line'> | null>(null);
   const segmentLineRef = useRef<ISeriesApi<'Line'> | null>(null);
   const centerLinesRef = useRef<ISeriesApi<'Line'>[]>([]);
@@ -96,8 +99,11 @@ export default function KLineChart({
       wickDownColor: '#27AE60',
     });
 
+    const markers = createSeriesMarkers<Time>(candlestickSeries, []);
+
     chartRef.current = chart;
     candlestickSeriesRef.current = candlestickSeries;
+    markersRef.current = markers;
 
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -114,6 +120,7 @@ export default function KLineChart({
       chart.remove();
       chartRef.current = null;
       candlestickSeriesRef.current = null;
+      markersRef.current = null;
       strokeLineRef.current = null;
       segmentLineRef.current = null;
       centerLinesRef.current = [];
@@ -129,7 +136,7 @@ export default function KLineChart({
   }, [chartData]);
 
   useEffect(() => {
-    if (!chartRef.current || !candlestickSeriesRef.current) return;
+    if (!markersRef.current) return;
 
     const markers: Array<{
       time: Time;
@@ -188,7 +195,7 @@ export default function KLineChart({
       }
     }
 
-    (candlestickSeriesRef.current as any).setMarkers(markers);
+    markersRef.current.setMarkers(markers);
   }, [chanLunResult, data, showFractals, showBuySellPoints]);
 
   useEffect(() => {
