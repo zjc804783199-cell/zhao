@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>淘宝店铺智能诊断系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>淘宝店铺智能诊断系统</h1>
+            <p class="subtitle">上传数据文件，一键生成店铺诊断报告</p>
+        </div>
+
+        <div class="upload-card">
+            {% if error %}
+            <div class="alert alert-error">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('analyze') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>店铺ID（选填）</label>
+                        <input type="text" name="store_id" placeholder="请输入店铺ID">
+                    </div>
+                    <div class="form-group">
+                        <label>店铺名称（选填）</label>
+                        <input type="text" name="store_name" placeholder="请输入店铺名称">
+                    </div>
+                </div>
+
+                <div class="upload-section">
+                    <h3>请上传以下三个数据文件</h3>
+                    <p class="hint">支持 CSV 和 Excel（.xlsx/.xls）格式</p>
+
+                    <div class="file-upload-group">
+                        <div class="file-upload-item">
+                            <div class="file-icon">📊</div>
+                            <div class="file-info">
+                                <h4>店铺经营日报</h4>
+                                <p>包含访客数、支付金额、退款率、老客占比等字段</p>
+                            </div>
+                            <div class="file-input-wrapper">
+                                <input type="file" name="store_file" id="store_file" accept=".csv,.xlsx,.xls" required>
+                                <label for="store_file" class="btn btn-upload">选择文件</label>
+                            </div>
+                            <div class="file-name" id="store_file_name"></div>
+                        </div>
+
+                        <div class="file-upload-item">
+                            <div class="file-icon">📈</div>
+                            <div class="file-info">
+                                <h4>直通车推广日报</h4>
+                                <p>包含展现量、点击量、花费、ROI等字段</p>
+                            </div>
+                            <div class="file-input-wrapper">
+                                <input type="file" name="ad_file" id="ad_file" accept=".csv,.xlsx,.xls" required>
+                                <label for="ad_file" class="btn btn-upload">选择文件</label>
+                            </div>
+                            <div class="file-name" id="ad_file_name"></div>
+                        </div>
+
+                        <div class="file-upload-item">
+                            <div class="file-icon">🛒</div>
+                            <div class="file-info">
+                                <h4>商品销售排行</h4>
+                                <p>包含商品名称、访客数、转化率、支付金额等字段</p>
+                            </div>
+                            <div class="file-input-wrapper">
+                                <input type="file" name="product_file" id="product_file" accept=".csv,.xlsx,.xls" required>
+                                <label for="product_file" class="btn btn-upload">选择文件</label>
+                            </div>
+                            <div class="file-name" id="product_file_name"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="submit-section">
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                        <span class="btn-text">开始诊断分析</span>
+                        <span class="btn-loading" style="display: none;">分析中...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="features">
+            <div class="feature-item">
+                <div class="feature-icon">🎯</div>
+                <h4>智能诊断</h4>
+                <p>自动识别店铺问题，精准定位流量、转化、服务、财务四大维度</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">💡</div>
+                <h4>优化方案</h4>
+                <p>针对每个问题提供具体可行的优化建议和预期效果</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">📋</div>
+                <h4>完整报告</h4>
+                <p>生成包含所有分析结果的完整Excel报告，支持下载</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setupFileInput(inputId, nameId) {
+            const input = document.getElementById(inputId);
+            const nameDisplay = document.getElementById(nameId);
+            input.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    nameDisplay.textContent = '✓ ' + this.files[0].name;
+                    nameDisplay.style.color = '#52c41a';
+                }
+            });
+        }
+
+        setupFileInput('store_file', 'store_file_name');
+        setupFileInput('ad_file', 'ad_file_name');
+        setupFileInput('product_file', 'product_file_name');
+
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.querySelector('.btn-text').style.display = 'none';
+            btn.querySelector('.btn-loading').style.display = 'inline';
+        });
+    </script>
+</body>
+</html>
