@@ -98,13 +98,24 @@ class DataImporter:
 
     def _read_file(self, file_path: str) -> Optional[pd.DataFrame]:
         try:
-            if file_path.endswith('.csv'):
+            ext = os.path.splitext(file_path)[1].lower()
+            if ext == '.csv':
                 return pd.read_csv(file_path, encoding='utf-8-sig')
-            elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
-                return pd.read_excel(file_path)
+            elif ext == '.xlsx':
+                return pd.read_excel(file_path, engine='openpyxl')
+            elif ext == '.xls':
+                return pd.read_excel(file_path, engine='xlrd')
             else:
                 print(f"不支持的文件格式: {file_path}")
                 return None
+        except ImportError as e:
+            if 'xlrd' in str(e).lower():
+                print(f"读取 .xls 文件需要 xlrd 库，请执行: pip install xlrd==2.0.1")
+            elif 'openpyxl' in str(e).lower():
+                print(f"读取 .xlsx 文件需要 openpyxl 库，请执行: pip install openpyxl")
+            else:
+                print(f"缺少依赖库: {e}")
+            return None
         except Exception as e:
             print(f"读取文件失败 {file_path}: {e}")
             return None

@@ -8,8 +8,10 @@ setup(
         'pandas>=2.0.0',
         'numpy>=1.24.0',
         'openpyxl>=3.1.0',
+        'xlrd>=2.0.1',
         'matplotlib>=3.7.0',
         'seaborn>=0.12.0',
+        'flask>=2.0.0',
     ],
     entry_points={
         'console_scripts': [

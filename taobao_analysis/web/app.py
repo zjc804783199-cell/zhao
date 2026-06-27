@@ -103,24 +103,36 @@ def download():
 
 def _read_uploaded_file(file_storage):
     filename = file_storage.filename
-    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+    ext = os.path.splitext(filename)[1].lower()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
         file_storage.save(tmp.name)
         tmp_path = tmp.name
 
     try:
-        if filename.endswith('.csv'):
+        if ext == '.csv':
             df = pd.read_csv(tmp_path, encoding='utf-8-sig')
-        elif filename.endswith(('.xlsx', '.xls')):
-            df = pd.read_excel(tmp_path)
+        elif ext == '.xlsx':
+            try:
+                df = pd.read_excel(tmp_path, engine='openpyxl')
+            except ImportError:
+                raise ValueError('读取 .xlsx 文件需要 openpyxl 库，请执行: pip install openpyxl')
+        elif ext == '.xls':
+            try:
+                df = pd.read_excel(tmp_path, engine='xlrd')
+            except ImportError:
+                raise ValueError('读取 .xls 旧版Excel文件需要 xlrd 库，请执行: pip install xlrd==2.0.1')
         else:
             os.unlink(tmp_path)
-            raise ValueError('不支持的文件格式')
+            raise ValueError('不支持的文件格式，请上传 .csv 或 .xlsx 或 .xls 文件')
 
         os.unlink(tmp_path)
         return df
+    except ValueError:
+        os.unlink(tmp_path)
+        raise
     except Exception as e:
         os.unlink(tmp_path)
-        raise e
+        raise ValueError(f'文件读取失败: {str(e)}')
 
 
 def _run_analysis(store_df, ad_df, product_df, store_id, store_name):
