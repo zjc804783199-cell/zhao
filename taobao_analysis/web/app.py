@@ -101,6 +101,25 @@ def download():
     return send_file(filepath, as_attachment=True, download_name='店铺诊断报告.xlsx')
 
 
+def _detect_file_format(file_path):
+    with open(file_path, 'rb') as f:
+        header = f.read(8)
+    if header[:2] == b'PK':
+        return 'xlsx'
+    elif header[:4] == b'\xd0\xcf\x11\xe0':
+        return 'xls'
+    elif header[:5] == b'<?xml' or header[:5] == b'<html' or header[:5] == b'<!DOC':
+        return 'html'
+    else:
+        try:
+            with open(file_path, 'r', encoding='utf-8-sig') as f:
+                first_line = f.readline()
+                if ',' in first_line or '\t' in first_line:
+                    return 'csv'
+        except:
+            pass
+    return None
+
 def _read_uploaded_file(file_storage):
     filename = file_storage.filename
     ext = os.path.splitext(filename)[1].lower()
@@ -108,22 +127,46 @@ def _read_uploaded_file(file_storage):
         file_storage.save(tmp.name)
         tmp_path = tmp.name
 
+    real_format = _detect_file_format(tmp_path)
+
     try:
-        if ext == '.csv':
-            df = pd.read_csv(tmp_path, encoding='utf-8-sig')
-        elif ext == '.xlsx':
+        if ext == '.csv' or real_format == 'csv':
+            try:
+                df = pd.read_csv(tmp_path, encoding='utf-8-sig')
+            except UnicodeDecodeError:
+                df = pd.read_csv(tmp_path, encoding='gbk')
+        elif real_format == 'xlsx':
             try:
                 df = pd.read_excel(tmp_path, engine='openpyxl')
             except ImportError:
                 raise ValueError('读取 .xlsx 文件需要 openpyxl 库，请执行: pip install openpyxl')
-        elif ext == '.xls':
+        elif real_format == 'xls':
             try:
                 df = pd.read_excel(tmp_path, engine='xlrd')
             except ImportError:
                 raise ValueError('读取 .xls 旧版Excel文件需要 xlrd 库，请执行: pip install xlrd==2.0.1')
+        elif real_format == 'html':
+            try:
+                dfs = pd.read_html(tmp_path)
+                if dfs:
+                    df = dfs[0]
+                else:
+                    raise ValueError('HTML文件中未找到表格数据')
+            except Exception as e:
+                raise ValueError(f'识别到HTML格式文件，但解析失败: {str(e)}')
         else:
-            os.unlink(tmp_path)
-            raise ValueError('不支持的文件格式，请上传 .csv 或 .xlsx 或 .xls 文件')
+            if ext in ('.xlsx', '.xls'):
+                for engine in ['openpyxl', 'xlrd']:
+                    try:
+                        df = pd.read_excel(tmp_path, engine=engine)
+                        break
+                    except:
+                        continue
+                else:
+                    raise ValueError('文件无法识别为有效的Excel格式，可能已损坏或不是标准Excel文件')
+            else:
+                os.unlink(tmp_path)
+                raise ValueError('不支持的文件格式，请上传 .csv 或 .xlsx 或 .xls 文件')
 
         os.unlink(tmp_path)
         return df

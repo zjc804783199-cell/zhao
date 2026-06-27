@@ -96,18 +96,57 @@ class DataImporter:
 
         return None
 
+    def _detect_file_format(self, file_path: str) -> str:
+        with open(file_path, 'rb') as f:
+            header = f.read(8)
+        if header[:2] == b'PK':
+            return 'xlsx'
+        elif header[:4] == b'\xd0\xcf\x11\xe0':
+            return 'xls'
+        elif header[:5] in (b'<?xml', b'<html', b'<!DOC'):
+            return 'html'
+        else:
+            try:
+                with open(file_path, 'r', encoding='utf-8-sig') as f:
+                    first_line = f.readline()
+                    if ',' in first_line or '\t' in first_line:
+                        return 'csv'
+            except:
+                pass
+        return None
+
     def _read_file(self, file_path: str) -> Optional[pd.DataFrame]:
         try:
+            real_format = self._detect_file_format(file_path)
             ext = os.path.splitext(file_path)[1].lower()
-            if ext == '.csv':
-                return pd.read_csv(file_path, encoding='utf-8-sig')
-            elif ext == '.xlsx':
+
+            if ext == '.csv' or real_format == 'csv':
+                try:
+                    return pd.read_csv(file_path, encoding='utf-8-sig')
+                except UnicodeDecodeError:
+                    return pd.read_csv(file_path, encoding='gbk')
+            elif real_format == 'xlsx':
                 return pd.read_excel(file_path, engine='openpyxl')
-            elif ext == '.xls':
+            elif real_format == 'xls':
                 return pd.read_excel(file_path, engine='xlrd')
-            else:
-                print(f"不支持的文件格式: {file_path}")
+            elif real_format == 'html':
+                dfs = pd.read_html(file_path)
+                if dfs:
+                    return dfs[0]
+                print(f"HTML文件中未找到表格数据: {file_path}")
                 return None
+            else:
+                if ext in ('.xlsx', '.xls'):
+                    for engine in ['openpyxl', 'xlrd']:
+                        try:
+                            return pd.read_excel(file_path, engine=engine)
+                        except:
+                            continue
+                    print(f"文件无法识别为有效的Excel格式: {file_path}")
+                    return None
+                else:
+                    print(f"不支持的文件格式: {file_path}")
+                    return None
         except ImportError as e:
             if 'xlrd' in str(e).lower():
                 print(f"读取 .xls 文件需要 xlrd 库，请执行: pip install xlrd==2.0.1")
