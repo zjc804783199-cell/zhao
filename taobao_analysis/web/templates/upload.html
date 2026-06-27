@@ -28,43 +28,24 @@
         <main class="main-content">
             <div class="container">
                 <div class="upload-hero">
-                    <div class="hero-content">
-                        <h2 class="hero-title">
-                            <span class="highlight">30秒</span> 生成店铺诊断报告
-                        </h2>
-                        <p class="hero-desc">
-                            上传三份数据文件，AI自动分析流量、转化、服务、财务四大维度，
-                            <br>精准定位问题并提供可落地的优化方案
-                        </p>
-                        <div class="hero-features">
-                            <div class="hero-feature">
-                                <div class="feature-num">01</div>
-                                <div class="feature-info">
-                                    <h4>四大维度诊断</h4>
-                                    <p>流量/转化/服务/财务</p>
-                                </div>
-                            </div>
-                            <div class="hero-feature">
-                                <div class="feature-num">02</div>
-                                <div class="feature-info">
-                                    <h4>智能问题识别</h4>
-                                    <p>自动发现10+常见问题</p>
-                                </div>
-                            </div>
-                            <div class="hero-feature">
-                                <div class="feature-num">03</div>
-                                <div class="feature-info">
-                                    <h4>优化方案推荐</h4>
-                                    <p>针对性改进建议</p>
-                                </div>
-                            </div>
-                            <div class="hero-feature">
-                                <div class="feature-num">04</div>
-                                <div class="feature-info">
-                                    <h4>完整报告导出</h4>
-                                    <p>Excel格式一键下载</p>
-                                </div>
-                            </div>
+                    <h2 class="hero-title"><span class="highlight">30秒</span> 生成店铺诊断报告</h2>
+                    <p class="hero-desc">上传三份数据文件，AI自动分析流量、转化、服务、财务四大维度<br>精准定位问题并提供可落地的优化方案</p>
+                    <div class="hero-features">
+                        <div class="hero-feature">
+                            <div class="feature-num">01</div>
+                            <div class="feature-info"><h4>四大维度诊断</h4><p>流量/转化/服务/财务</p></div>
+                        </div>
+                        <div class="hero-feature">
+                            <div class="feature-num">02</div>
+                            <div class="feature-info"><h4>智能问题识别</h4><p>自动发现10+常见问题</p></div>
+                        </div>
+                        <div class="hero-feature">
+                            <div class="feature-num">03</div>
+                            <div class="feature-info"><h4>优化方案推荐</h4><p>针对性改进建议</p></div>
+                        </div>
+                        <div class="hero-feature">
+                            <div class="feature-num">04</div>
+                            <div class="feature-info"><h4>完整报告导出</h4><p>Excel格式一键下载</p></div>
                         </div>
                     </div>
                 </div>
@@ -85,16 +66,16 @@
                     <form action="{{ url_for('analyze') }}" method="post" enctype="multipart/form-data" id="uploadForm">
                         <div class="info-row">
                             <div class="info-item">
-                                <label>店铺ID</label>
-                                <input type="text" name="store_id" placeholder="选填">
+                                <label>店铺ID（选填）</label>
+                                <input type="text" name="store_id" placeholder="请输入店铺ID">
                             </div>
                             <div class="info-item">
-                                <label>店铺名称</label>
-                                <input type="text" name="store_name" placeholder="选填">
+                                <label>店铺名称（选填）</label>
+                                <input type="text" name="store_name" placeholder="请输入店铺名称">
                             </div>
                             <div class="info-item">
-                                <label>主营类目</label>
-                                <input type="text" name="category" placeholder="选填，如：儿童地板袜">
+                                <label>主营类目（选填）</label>
+                                <input type="text" name="category" placeholder="如：儿童地板袜">
                             </div>
                         </div>
 
@@ -111,10 +92,7 @@
                                     <h4>店铺经营日报</h4>
                                     <p>访客数、支付金额、退款率、老客占比等</p>
                                     <div class="required-tags">
-                                        <span>访客数</span>
-                                        <span>支付金额</span>
-                                        <span>退款率</span>
-                                        <span>老客占比</span>
+                                        <span>访客数</span><span>支付金额</span><span>退款率</span><span>老客占比</span>
                                     </div>
                                 </div>
                                 <div class="file-input-wrapper">
@@ -142,10 +120,7 @@
                                     <h4>直通车推广日报</h4>
                                     <p>展现量、点击量、花费、ROI等</p>
                                     <div class="required-tags">
-                                        <span>展现量</span>
-                                        <span>花费</span>
-                                        <span>投入产出比</span>
-                                        <span>点击率</span>
+                                        <span>展现量</span><span>花费</span><span>投入产出比</span><span>点击率</span>
                                     </div>
                                 </div>
                                 <div class="file-input-wrapper">
@@ -173,10 +148,7 @@
                                     <h4>商品销售排行</h4>
                                     <p>商品名称、访客数、转化率、支付金额等</p>
                                     <div class="required-tags">
-                                        <span>商品名称</span>
-                                        <span>访客数</span>
-                                        <span>转化率</span>
-                                        <span>支付金额</span>
+                                        <span>商品名称</span><span>访客数</span><span>转化率</span><span>支付金额</span>
                                     </div>
                                 </div>
                                 <div class="file-input-wrapper">
@@ -195,14 +167,8 @@
 
                         <div class="submit-area">
                             <button type="submit" class="btn-submit" id="submitBtn">
-                                <span class="btn-default">
-                                    <span class="btn-icon">🚀</span>
-                                    开始智能诊断
-                                </span>
-                                <span class="btn-loading" style="display:none;">
-                                    <span class="spinner"></span>
-                                    正在分析数据...
-                                </span>
+                                <span class="btn-default"><span class="btn-icon">🚀</span>开始智能诊断</span>
+                                <span class="btn-loading" style="display:none;"><span class="spinner"></span>正在分析数据...</span>
                             </button>
                             <p class="submit-tip">🔒 您的数据仅在本地处理，不会上传到任何服务器</p>
                         </div>
@@ -210,33 +176,19 @@
                 </div>
 
                 <div class="stats-row">
-                    <div class="stat-item">
-                        <div class="stat-value">10,000+</div>
-                        <div class="stat-label">店铺诊断</div>
-                    </div>
+                    <div class="stat-item"><div class="stat-value">10,000+</div><div class="stat-label">店铺诊断</div></div>
                     <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <div class="stat-value">98%</div>
-                        <div class="stat-label">问题识别准确率</div>
-                    </div>
+                    <div class="stat-item"><div class="stat-value">98%</div><div class="stat-label">问题识别准确率</div></div>
                     <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <div class="stat-value">30s</div>
-                        <div class="stat-label">平均分析时长</div>
-                    </div>
+                    <div class="stat-item"><div class="stat-value">30s</div><div class="stat-label">平均分析时长</div></div>
                     <div class="stat-divider"></div>
-                    <div class="stat-item">
-                        <div class="stat-value">50+</div>
-                        <div class="stat-label">优化方案</div>
-                    </div>
+                    <div class="stat-item"><div class="stat-value">50+</div><div class="stat-label">优化方案</div></div>
                 </div>
             </div>
         </main>
 
         <footer class="app-footer">
-            <div class="container">
-                <p>© 2026 淘宝店铺智能诊断系统 · 数据安全 · 本地处理</p>
-            </div>
+            <div class="container"><p>© 2026 淘宝店铺智能诊断系统 · 数据安全 · 本地处理</p></div>
         </footer>
     </div>
 
@@ -246,7 +198,6 @@
             const selected = document.getElementById(selectedId);
             const nameSpan = document.getElementById(nameId);
             const card = input.closest('.file-upload-card');
-
             input.addEventListener('change', function() {
                 if (this.files && this.files[0]) {
                     const file = this.files[0];
@@ -256,21 +207,17 @@
                 }
             });
         }
-
         function formatFileSize(bytes) {
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
-
         setupFileInput('store_file', 'store_file_selected', 'store_file_name');
         setupFileInput('ad_file', 'ad_file_selected', 'ad_file_name');
         setupFileInput('product_file', 'product_file_selected', 'product_file_name');
-
         document.getElementById('uploadForm').addEventListener('submit', function(e) {
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.classList.add('loading');
             btn.querySelector('.btn-default').style.display = 'none';
             btn.querySelector('.btn-loading').style.display = 'flex';
         });

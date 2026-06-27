@@ -178,13 +178,35 @@ def _read_uploaded_file(file_storage):
         raise ValueError(f'文件读取失败: {str(e)}')
 
 
+def _clean_column_names(df):
+    """清洗DataFrame列名，去除BOM头、空格和特殊字符"""
+    if df is None:
+        return None
+    df.columns = df.columns.astype(str)
+    df.columns = df.columns.str.replace('\ufeff', '', regex=False)
+    df.columns = df.columns.str.strip()
+    return df
+
 def _run_analysis(store_df, ad_df, product_df, store_id, store_name):
     metrics_analyzer = MetricsAnalyzer()
     health_analyzer = HealthAnalyzer()
     problem_diagnoser = ProblemDiagnoser()
     optimizer = Optimizer()
 
-    store_df['日期'] = pd.to_datetime(store_df['日期']).dt.strftime('%Y-%m-%d')
+    store_df = _clean_column_names(store_df)
+    if ad_df is not None:
+        ad_df = _clean_column_names(ad_df)
+    if product_df is not None:
+        product_df = _clean_column_names(product_df)
+
+    date_col = None
+    for col in store_df.columns:
+        if '日期' in col or 'date' in col.lower():
+            date_col = col
+            break
+
+    if date_col:
+        store_df[date_col] = pd.to_datetime(store_df[date_col]).dt.strftime('%Y-%m-%d')
 
     core_metrics = metrics_analyzer.calculate_core_metrics(store_df)
     cross_analysis = metrics_analyzer.calculate_cross_analysis(store_df, ad_df)
@@ -195,8 +217,8 @@ def _run_analysis(store_df, ad_df, product_df, store_id, store_name):
     problems = problem_diagnoser.diagnose_all(core_metrics, cross_analysis, traffic_concentration, ad_trend)
     recommendations = optimizer.generate_recommendations(problems)
 
-    if not store_df.empty:
-        date_range = f"{store_df['日期'].min()} 至 {store_df['日期'].max()}"
+    if not store_df.empty and date_col:
+        date_range = f"{store_df[date_col].min()} 至 {store_df[date_col].max()}"
     else:
         date_range = ""
 
