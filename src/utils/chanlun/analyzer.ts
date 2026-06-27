@@ -9,7 +9,7 @@ interface MergedKLine {
   time: number;
 }
 
-function handleInclusion(klines: KLineData[]): MergedKLine[] {
+export function handleInclusion(klines: KLineData[]): MergedKLine[] {
   if (klines.length < 2) {
     return klines.map((k, i) => ({
       index: i,
@@ -21,91 +21,12 @@ function handleInclusion(klines: KLineData[]): MergedKLine[] {
     }));
   }
 
-  const result: MergedKLine[] = [
-    {
-      index: 0,
-      high: klines[0].high,
-      low: klines[0].low,
-      open: klines[0].open,
-      close: klines[0].close,
-      time: klines[0].time,
-    },
-  ];
+  const result: MergedKLine[] = [];
 
-  let direction: 'up' | 'down' | null = null;
-
-  for (let i = 1; i < klines.length; i++) {
+  for (let i = 0; i < klines.length; i++) {
     const curr = klines[i];
-    const last = result[result.length - 1];
 
-    const isInclusion = curr.high <= last.high && curr.low >= last.low;
-    const isReverseInclusion = curr.high >= last.high && curr.low <= last.low;
-
-    if (result.length < 2) {
-      if (isInclusion || isReverseInclusion) {
-        if (curr.close >= curr.open) {
-          result[result.length - 1] = {
-            ...last,
-            high: Math.max(last.high, curr.high),
-            low: Math.max(last.low, curr.low),
-            index: i,
-            close: curr.close,
-            time: curr.time,
-          };
-        } else {
-          result[result.length - 1] = {
-            ...last,
-            high: Math.min(last.high, curr.high),
-            low: Math.min(last.low, curr.low),
-            index: i,
-            close: curr.close,
-            time: curr.time,
-          };
-        }
-        continue;
-      } else {
-        result.push({
-          index: i,
-          high: curr.high,
-          low: curr.low,
-          open: curr.open,
-          close: curr.close,
-          time: curr.time,
-        });
-        continue;
-      }
-    }
-
-    const secondLast = result[result.length - 2];
-    if (!direction) {
-      direction = last.high > secondLast.high ? 'up' : 'down';
-    }
-
-    if (isInclusion || isReverseInclusion) {
-      if (direction === 'up') {
-        result[result.length - 1] = {
-          ...last,
-          high: Math.max(last.high, curr.high),
-          low: Math.max(last.low, curr.low),
-          index: i,
-          close: curr.close,
-          time: curr.time,
-        };
-      } else {
-        result[result.length - 1] = {
-          ...last,
-          high: Math.min(last.high, curr.high),
-          low: Math.min(last.low, curr.low),
-          index: i,
-          close: curr.close,
-          time: curr.time,
-        };
-      }
-    } else {
-      const newDirection = curr.high > last.high ? 'up' : 'down';
-      if (newDirection !== direction) {
-        direction = newDirection;
-      }
+    if (result.length === 0) {
       result.push({
         index: i,
         high: curr.high,
@@ -114,6 +35,60 @@ function handleInclusion(klines: KLineData[]): MergedKLine[] {
         close: curr.close,
         time: curr.time,
       });
+      continue;
+    }
+
+    let last = result[result.length - 1];
+
+    const hasInclusion =
+      (curr.high <= last.high && curr.low >= last.low) ||
+      (curr.high >= last.high && curr.low <= last.low);
+
+    if (!hasInclusion) {
+      result.push({
+        index: i,
+        high: curr.high,
+        low: curr.low,
+        open: curr.open,
+        close: curr.close,
+        time: curr.time,
+      });
+      continue;
+    }
+
+    if (result.length < 2) {
+      result[result.length - 1] = {
+        index: i,
+        high: Math.max(last.high, curr.high),
+        low: Math.min(last.low, curr.low),
+        open: last.open,
+        close: curr.close,
+        time: curr.time,
+      };
+      continue;
+    }
+
+    const secondLast = result[result.length - 2];
+    const direction = last.high > secondLast.high ? 'up' : 'down';
+
+    if (direction === 'up') {
+      result[result.length - 1] = {
+        index: i,
+        high: Math.max(last.high, curr.high),
+        low: Math.max(last.low, curr.low),
+        open: last.open,
+        close: curr.close,
+        time: curr.time,
+      };
+    } else {
+      result[result.length - 1] = {
+        index: i,
+        high: Math.min(last.high, curr.high),
+        low: Math.min(last.low, curr.low),
+        open: last.open,
+        close: curr.close,
+        time: curr.time,
+      };
     }
   }
 
@@ -124,15 +99,26 @@ function identifyFractalsFromMerged(merged: MergedKLine[]): Fractal[] {
   const fractals: Fractal[] = [];
   if (merged.length < 3) return fractals;
 
-  for (let i = 1; i < merged.length - 1; i++) {
+  const n = merged.length;
+
+  for (let i = 1; i < n - 1; i++) {
     const prev = merged[i - 1];
     const curr = merged[i];
     const next = merged[i + 1];
 
-    const isTop = curr.high > prev.high && curr.high > next.high;
-    const isBottom = curr.low < prev.low && curr.low < next.low;
+    const isTopFractal =
+      curr.high > prev.high &&
+      curr.high > next.high &&
+      curr.low > prev.low &&
+      curr.low > next.low;
 
-    if (isTop) {
+    const isBottomFractal =
+      curr.low < prev.low &&
+      curr.low < next.low &&
+      curr.high < prev.high &&
+      curr.high < next.high;
+
+    if (isTopFractal) {
       fractals.push({
         index: curr.index,
         type: 'top',
@@ -142,7 +128,7 @@ function identifyFractalsFromMerged(merged: MergedKLine[]): Fractal[] {
       });
     }
 
-    if (isBottom) {
+    if (isBottomFractal) {
       fractals.push({
         index: curr.index,
         type: 'bottom',
@@ -165,47 +151,48 @@ export function generateStrokes(klines: KLineData[], fractals: Fractal[]): Strok
   const strokes: Stroke[] = [];
   if (fractals.length < 2) return strokes;
 
-  const validFractals: Fractal[] = [];
+  const valid: Fractal[] = [];
 
   for (let i = 0; i < fractals.length; i++) {
     const curr = fractals[i];
 
-    if (validFractals.length === 0) {
-      validFractals.push(curr);
+    if (valid.length === 0) {
+      valid.push(curr);
       continue;
     }
 
-    const last = validFractals[validFractals.length - 1];
+    const last = valid[valid.length - 1];
 
     if (curr.type === last.type) {
       if (curr.type === 'top') {
         if (curr.price > last.price) {
-          validFractals[validFractals.length - 1] = curr;
+          valid[valid.length - 1] = curr;
         }
       } else {
         if (curr.price < last.price) {
-          validFractals[validFractals.length - 1] = curr;
+          valid[valid.length - 1] = curr;
         }
       }
       continue;
     }
 
-    const klineDiff = Math.abs(curr.index - last.index);
-    if (klineDiff < 4) continue;
+    const klineCount = Math.abs(curr.index - last.index);
+    if (klineCount < 4) continue;
 
-    validFractals.push(curr);
+    valid.push(curr);
   }
 
-  if (validFractals.length < 2) return strokes;
+  if (valid.length < 2) return strokes;
 
-  for (let i = 0; i < validFractals.length - 1; i++) {
-    const start = validFractals[i];
-    const end = validFractals[i + 1];
+  for (let i = 0; i < valid.length - 1; i++) {
+    const start = valid[i];
+    const end = valid[i + 1];
 
     let high = Math.max(start.high, end.high);
     let low = Math.min(start.low, end.low);
     const startIdx = Math.min(start.index, end.index);
     const endIdx = Math.max(start.index, end.index);
+
     for (let j = startIdx; j <= endIdx; j++) {
       if (j >= 0 && j < klines.length) {
         high = Math.max(high, klines[j].high);
@@ -232,7 +219,7 @@ export function generateSegments(strokes: Stroke[]): Segment[] {
   if (strokes.length < 3) return segments;
 
   let i = 0;
-  while (i < strokes.length - 2) {
+  while (i <= strokes.length - 3) {
     const s1 = strokes[i];
     const s2 = strokes[i + 1];
     const s3 = strokes[i + 2];
@@ -251,36 +238,33 @@ export function generateSegments(strokes: Stroke[]): Segment[] {
     let segLow = Math.min(s1.low, s2.low, s3.low);
 
     let j = i + 3;
-    let lastStroke = s3;
+    let lastEndStroke = s3;
+    let lastOppositeStroke = s2;
 
     while (j < strokes.length) {
       const curr = strokes[j];
 
       if (direction === 'up') {
-        if (curr.direction === 'down' && curr.endPrice < s2.low) {
-          break;
-        }
-        if (curr.direction === 'up' && curr.endPrice > lastStroke.endPrice) {
-          lastStroke = curr;
-          segEndIdx = curr.endIndex;
-          segEndPrice = curr.endPrice;
-          segHigh = Math.max(segHigh, curr.high);
-          segLow = Math.min(segLow, curr.low);
-          j++;
-          continue;
+        if (curr.direction === 'down') {
+          if (curr.endPrice < lastOppositeStroke.low) {
+            break;
+          }
+          lastOppositeStroke = curr;
+        } else {
+          if (curr.endPrice > lastEndStroke.endPrice) {
+            lastEndStroke = curr;
+          }
         }
       } else {
-        if (curr.direction === 'up' && curr.endPrice > s2.high) {
-          break;
-        }
-        if (curr.direction === 'down' && curr.endPrice < lastStroke.endPrice) {
-          lastStroke = curr;
-          segEndIdx = curr.endIndex;
-          segEndPrice = curr.endPrice;
-          segHigh = Math.max(segHigh, curr.high);
-          segLow = Math.min(segLow, curr.low);
-          j++;
-          continue;
+        if (curr.direction === 'up') {
+          if (curr.endPrice > lastOppositeStroke.high) {
+            break;
+          }
+          lastOppositeStroke = curr;
+        } else {
+          if (curr.endPrice < lastEndStroke.endPrice) {
+            lastEndStroke = curr;
+          }
         }
       }
 
