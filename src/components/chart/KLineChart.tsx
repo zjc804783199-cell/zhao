@@ -225,12 +225,15 @@ export default function KLineChart({
       });
 
       const strokeData: Array<{ time: Time; value: number }> = [];
-      for (const stroke of chanLunResult.strokes) {
+      for (let i = 0; i < chanLunResult.strokes.length; i++) {
+        const stroke = chanLunResult.strokes[i];
         if (stroke.startIndex < data.length && stroke.endIndex < data.length) {
-          strokeData.push({
-            time: data[stroke.startIndex].time as Time,
-            value: stroke.startPrice,
-          });
+          if (i === 0) {
+            strokeData.push({
+              time: data[stroke.startIndex].time as Time,
+              value: stroke.startPrice,
+            });
+          }
           strokeData.push({
             time: data[stroke.endIndex].time as Time,
             value: stroke.endPrice,
@@ -250,12 +253,15 @@ export default function KLineChart({
       });
 
       const segmentData: Array<{ time: Time; value: number }> = [];
-      for (const seg of chanLunResult.segments) {
+      for (let i = 0; i < chanLunResult.segments.length; i++) {
+        const seg = chanLunResult.segments[i];
         if (seg.startIndex < data.length && seg.endIndex < data.length) {
-          segmentData.push({
-            time: data[seg.startIndex].time as Time,
-            value: seg.startPrice,
-          });
+          if (i === 0) {
+            segmentData.push({
+              time: data[seg.startIndex].time as Time,
+              value: seg.startPrice,
+            });
+          }
           segmentData.push({
             time: data[seg.endIndex].time as Time,
             value: seg.endPrice,
