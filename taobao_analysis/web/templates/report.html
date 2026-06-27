@@ -5,385 +5,605 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>店铺诊断报告 - 淘宝店铺智能诊断系统</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
-<body>
-    <div class="report-container">
-        <div class="report-header">
-            <div>
-                <h1>淘宝店铺智能诊断报告</h1>
-                <p class="report-subtitle">
-                    数据周期: {{ result.date_range }}
-                    {% if result.store_name %} | 店铺: {{ result.store_name }}{% endif %}
-                    {% if result.store_id %} | 店铺ID: {{ result.store_id }}{% endif %}
-                </p>
+<body class="page-report">
+    <div class="app-wrapper">
+        <header class="app-header">
+            <div class="header-inner">
+                <div class="logo-area">
+                    <div class="logo-icon">📊</div>
+                    <div class="logo-text">
+                        <h1>淘宝店铺智能诊断</h1>
+                        <p>Shop Intelligent Diagnosis System</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <a href="{{ url_for('download') }}" class="btn-header btn-download">
+                        <span>📥</span> 下载报告
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn-header btn-retry">
+                        <span>🔄</span> 重新分析
+                    </a>
+                </div>
             </div>
-            <div class="header-actions">
-                <a href="{{ url_for('download') }}" class="btn btn-primary">
-                    📥 下载Excel报告
-                </a>
-                <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                    🔄 重新分析
-                </a>
-            </div>
-        </div>
+        </header>
 
-        <div class="nav-tabs">
-            <button class="tab-btn active" data-tab="overview">核心概览</button>
-            <button class="tab-btn" data-tab="metrics">核心指标</button>
-            <button class="tab-btn" data-tab="problems">问题清单</button>
-            <button class="tab-btn" data-tab="recommendations">优化方案</button>
-            <button class="tab-btn" data-tab="daily">日报明细</button>
-            <button class="tab-btn" data-tab="products">商品排行</button>
-        </div>
-
-        <div class="tab-content active" id="overview">
-            <div class="section-card">
-                <h2 class="section-title">📊 店铺健康度评分</h2>
-                <div class="score-overview">
-                    <div class="overall-score">
-                        <div class="score-circle">
-                            <svg viewBox="0 0 120 120">
-                                <circle cx="60" cy="60" r="54" fill="none" stroke="#e0e0e0" stroke-width="10"/>
-                                <circle cx="60" cy="60" r="54" fill="none" 
-                                    stroke="{{ '#52c41a' if result.health_score.overall_score >= 60 else '#faad14' if result.health_score.overall_score >= 40 else '#f5222d' }}"
-                                    stroke-width="10"
-                                    stroke-dasharray="{{ result.health_score.overall_score * 3.39 }} 339"
-                                    stroke-linecap="round"
-                                    transform="rotate(-90 60 60)"/>
-                            </svg>
-                            <div class="score-text">
-                                <span class="score-number">{{ result.health_score.overall_score }}</span>
-                                <span class="score-label">综合评分</span>
-                            </div>
-                        </div>
-                        <p class="score-comment">
-                            {% if result.health_score.overall_score >= 80 %}
-                                经营状况优秀，继续保持！
-                            {% elif result.health_score.overall_score >= 60 %}
-                                经营状况良好，仍有优化空间
-                            {% elif result.health_score.overall_score >= 40 %}
-                                经营状况一般，需要重点优化
-                            {% else %}
-                                经营状况较差，急需改进
+        <main class="main-content">
+            <div class="container">
+                <div class="report-banner">
+                    <div class="banner-left">
+                        <h2>淘宝店铺智能诊断报告 — 核心概览</h2>
+                        <p class="banner-meta">
+                            <span>📅 数据周期：{{ result.date_range }}</span>
+                            {% if result.store_name %}
+                            <span>🏪 店铺：{{ result.store_name }}</span>
+                            {% endif %}
+                            {% if result.store_id %}
+                            <span>🆔 店铺ID：{{ result.store_id }}</span>
                             {% endif %}
                         </p>
                     </div>
-                    <div class="dimension-scores">
-                        <div class="score-item">
-                            <div class="score-header">
-                                <span>流量健康</span>
-                                <span class="score-value">{{ result.health_score.traffic_health }}</span>
+                    <div class="banner-right">
+                        <div class="overall-score-badge">
+                            <div class="score-ring">
+                                <svg viewBox="0 0 160 160">
+                                    <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="12"/>
+                                    <circle cx="80" cy="80" r="70" fill="none" stroke="#fff" stroke-width="12"
+                                        stroke-dasharray="{{ result.health_score.overall_score * 4.4 }} 440"
+                                        stroke-linecap="round" transform="rotate(-90 80 80)"/>
+                                </svg>
+                                <div class="score-inner">
+                                    <div class="score-num">{{ result.health_score.overall_score }}</div>
+                                    <div class="score-label">综合评分</div>
+                                </div>
                             </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ result.health_score.traffic_health }}%; background-color: {{ '#52c41a' if result.health_score.traffic_health >= 60 else '#faad14' if result.health_score.traffic_health >= 40 else '#f5222d' }};"></div>
-                            </div>
-                            <p class="score-desc">流量下降趋势明显，需重点关注</p>
-                        </div>
-                        <div class="score-item">
-                            <div class="score-header">
-                                <span>转化健康</span>
-                                <span class="score-value">{{ result.health_score.conversion_health }}</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ result.health_score.conversion_health }}%; background-color: {{ '#52c41a' if result.health_score.conversion_health >= 60 else '#faad14' if result.health_score.conversion_health >= 40 else '#f5222d' }};"></div>
-                            </div>
-                            <p class="score-desc">转化率尚可，但有优化空间</p>
-                        </div>
-                        <div class="score-item">
-                            <div class="score-header">
-                                <span>服务健康</span>
-                                <span class="score-value">{{ result.health_score.service_health }}</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ result.health_score.service_health }}%; background-color: {{ '#52c41a' if result.health_score.service_health >= 60 else '#faad14' if result.health_score.service_health >= 40 else '#f5222d' }};"></div>
-                            </div>
-                            <p class="score-desc">退款率过高，服务质量需改善</p>
-                        </div>
-                        <div class="score-item">
-                            <div class="score-header">
-                                <span>财务健康</span>
-                                <span class="score-value">{{ result.health_score.financial_health }}</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: {{ result.health_score.financial_health }}%; background-color: {{ '#52c41a' if result.health_score.financial_health >= 60 else '#faad14' if result.health_score.financial_health >= 40 else '#f5222d' }};"></div>
-                            </div>
-                            <p class="score-desc">ROI勉强达标，推广依赖度过高</p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="section-card">
-                <h2 class="section-title">🔍 交叉分析</h2>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-icon">💰</div>
-                        <div class="metric-content">
-                            <div class="metric-value">¥{{ "%.2f"|format(result.cross_analysis.paid_cost_total) }}</div>
-                            <div class="metric-label">付费推广总花费</div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-icon">💵</div>
-                        <div class="metric-content">
-                            <div class="metric-value">¥{{ "%.2f"|format(result.cross_analysis.paid_transaction_total) }}</div>
-                            <div class="metric-label">付费推广总成交</div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-icon">📊</div>
-                        <div class="metric-content">
-                            <div class="metric-value">{{ "%.1f"|format(result.cross_analysis.paid_gmv_ratio) }}%</div>
-                            <div class="metric-label">付费成交占GMV比</div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-icon">📈</div>
-                        <div class="metric-content">
-                            <div class="metric-value">{{ "%.2f"|format(result.cross_analysis.avg_roas) }}倍</div>
-                            <div class="metric-label">平均推广ROI</div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-icon">👥</div>
-                        <div class="metric-content">
-                            <div class="metric-value">{{ "%.1f"|format(result.cross_analysis.old_customer_ratio) }}%</div>
-                            <div class="metric-label">老客成交占比</div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-icon">🔄</div>
-                        <div class="metric-content">
-                            <div class="metric-value">{{ "%.2f"|format(result.cross_analysis.avg_cpc) }}元</div>
-                            <div class="metric-label">平均CPC</div>
-                        </div>
+                <div class="nav-tabs-wrapper">
+                    <div class="nav-tabs">
+                        <button class="nav-tab active" data-tab="overview">
+                            <span class="tab-icon">📊</span>核心概览
+                        </button>
+                        <button class="nav-tab" data-tab="diagnosis">
+                            <span class="tab-icon">⚠️</span>问题诊断
+                        </button>
+                        <button class="nav-tab" data-tab="optimize">
+                            <span class="tab-icon">💡</span>优化方案
+                        </button>
+                        <button class="nav-tab" data-tab="data">
+                            <span class="tab-icon">📋</span>数据明细
+                        </button>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="tab-content" id="metrics">
-            <div class="section-card">
-                <h2 class="section-title">📊 30天核心指标</h2>
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>指标</th>
-                                <th>数值</th>
-                                <th>单位</th>
-                                <th>前半15天均值</th>
-                                <th>后半15天均值</th>
-                                <th>变化</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>总GMV</td>
-                                <td class="highlight">¥{{ "%.2f"|format(result.core_metrics.total_gmv) }}</td>
-                                <td>元</td>
-                                <td>¥{{ "%.2f"|format(result.core_metrics.first_half_gmv) }}</td>
-                                <td>¥{{ "%.2f"|format(result.core_metrics.second_half_gmv) }}</td>
-                                <td class="{{ 'text-red' if result.core_metrics.gmv_change < 0 else 'text-green' }}">
+                <div class="tab-panel active" id="overview">
+                    <div class="section card-section">
+                        <div class="section-title">
+                            <h3>📈 30天核心指标</h3>
+                        </div>
+                        <div class="metrics-grid">
+                            <div class="metric-card metric-gmv">
+                                <div class="metric-header">
+                                    <span class="metric-label">总GMV</span>
+                                    <span class="metric-badge blue">核心指标</span>
+                                </div>
+                                <div class="metric-value">¥{{ "{:,.2f}".format(result.core_metrics.total_gmv) }}</div>
+                                <div class="metric-trend {{ 'down' if result.core_metrics.gmv_change < 0 else 'up' }}">
+                                    <span class="trend-icon">{{ '↓' if result.core_metrics.gmv_change < 0 else '↑' }}</span>
                                     {{ "%+.2f"|format(result.core_metrics.gmv_change) }}%
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>总访客数</td>
-                                <td class="highlight">{{ "{:,}".format(result.core_metrics.total_visitors) }}</td>
-                                <td>人</td>
-                                <td>{{ "{:,.0f}".format(result.core_metrics.first_half_visitors) }}</td>
-                                <td>{{ "{:,.0f}".format(result.core_metrics.second_half_visitors) }}</td>
-                                <td class="{{ 'text-red' if result.core_metrics.visitors_change < 0 else 'text-green' }}">
+                                </div>
+                            </div>
+                            <div class="metric-card metric-visitor">
+                                <div class="metric-header">
+                                    <span class="metric-label">总访客数</span>
+                                    <span class="metric-badge orange">流量</span>
+                                </div>
+                                <div class="metric-value">{{ "{:,}".format(result.core_metrics.total_visitors) }}</div>
+                                <div class="metric-trend {{ 'down' if result.core_metrics.visitors_change < 0 else 'up' }}">
+                                    <span class="trend-icon">{{ '↓' if result.core_metrics.visitors_change < 0 else '↑' }}</span>
                                     {{ "%+.2f"|format(result.core_metrics.visitors_change) }}%
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>总支付件数</td>
-                                <td>{{ "{:,}".format(result.core_metrics.total_payments) }}</td>
-                                <td>件</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                            </tr>
-                            <tr>
-                                <td>平均日GMV</td>
-                                <td>¥{{ "%.2f"|format(result.core_metrics.avg_daily_gmv) }}</td>
-                                <td>元</td>
-                                <td>¥{{ "%.2f"|format(result.core_metrics.first_half_gmv/15) }}</td>
-                                <td>¥{{ "%.2f"|format(result.core_metrics.second_half_gmv/15) }}</td>
-                                <td>-</td>
-                            </tr>
-                            <tr>
-                                <td>平均日访客</td>
-                                <td>{{ "{:,.0f}".format(result.core_metrics.avg_daily_visitors) }}</td>
-                                <td>人</td>
-                                <td>{{ "{:,.0f}".format(result.core_metrics.first_half_visitors/15) }}</td>
-                                <td>{{ "{:,.0f}".format(result.core_metrics.second_half_visitors/15) }}</td>
-                                <td>-</td>
-                            </tr>
-                            <tr>
-                                <td>平均客单价</td>
-                                <td>¥{{ "%.2f"|format(result.core_metrics.avg_order_value) }}</td>
-                                <td>元</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                            </tr>
-                            <tr>
-                                <td>平均支付转化率</td>
-                                <td>{{ "%.2f"|format(result.core_metrics.avg_conversion_rate) }}%</td>
-                                <td>%</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                            </tr>
-                            <tr>
-                                <td>平均退款率</td>
-                                <td class="{{ 'text-red' if result.core_metrics.avg_refund_rate > 15 else '' }}">{{ "%.2f"|format(result.core_metrics.avg_refund_rate) }}%</td>
-                                <td>%</td>
-                                <td>-</td>
-                                <td>-</td>
-                                <td>-</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="problems">
-            <div class="section-card">
-                <h2 class="section-title">⚠️ 店铺综合诊断 — 问题清单</h2>
-                <div class="problems-list">
-                    {% for problem in result.problems %}
-                    <div class="problem-item severity-{{ problem.severity }}">
-                        <div class="problem-header">
-                            <div class="problem-info">
-                                <span class="severity-badge severity-{{ problem.severity }}">{{ problem.severity }}</span>
-                                <span class="problem-id">#{{ problem.id }}</span>
-                                <h3 class="problem-title">{{ problem.description }}</h3>
+                                </div>
                             </div>
-                            <div class="problem-dimension">{{ problem.impact_dimension }}</div>
-                        </div>
-                        <div class="problem-evidence">
-                            <strong>📋 数据佐证：</strong>{{ problem.evidence }}
+                            <div class="metric-card metric-conv">
+                                <div class="metric-header">
+                                    <span class="metric-label">平均转化率</span>
+                                    <span class="metric-badge green">转化</span>
+                                </div>
+                                <div class="metric-value">{{ "%.2f"|format(result.core_metrics.avg_conversion_rate) }}%</div>
+                                <div class="metric-trend flat">
+                                    <span class="trend-icon">—</span>
+                                    行业均值6%
+                                </div>
+                            </div>
+                            <div class="metric-card metric-refund">
+                                <div class="metric-header">
+                                    <span class="metric-label">平均退款率</span>
+                                    <span class="metric-badge red {{ 'warning' if result.core_metrics.avg_refund_rate > 15 else '' }}">服务</span>
+                                </div>
+                                <div class="metric-value {{ 'text-red' if result.core_metrics.avg_refund_rate > 15 else '' }}">{{ "%.2f"|format(result.core_metrics.avg_refund_rate) }}%</div>
+                                <div class="metric-trend {{ 'up' if result.core_metrics.avg_refund_rate > 15 else 'flat' }}">
+                                    <span class="trend-icon">⚠️</span>
+                                    行业均值通常<10%
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
 
-        <div class="tab-content" id="recommendations">
-            <div class="section-card">
-                <h2 class="section-title">💡 优化方案推荐</h2>
-                <div class="recommendations-list">
-                    {% for rec in result.recommendations %}
-                    <div class="recommendation-item severity-{{ rec.severity }}">
-                        <div class="rec-header">
-                            <div class="rec-info">
-                                <span class="severity-badge severity-{{ rec.severity }}">{{ rec.severity }}</span>
-                                <h3 class="rec-title">{{ rec.problem_description }}</h3>
-                            </div>
-                            <div class="rec-effect">
-                                <span class="effect-label">预期效果</span>
-                                <span class="effect-text">{{ rec.expected_effect }}</span>
-                            </div>
+                    <div class="section card-section">
+                        <div class="section-title">
+                            <h3>🏥 店铺健康度评分</h3>
                         </div>
-                        <div class="rec-solutions">
-                            <h4>优化方案：</h4>
-                            <ol>
-                                {% for solution in rec.solutions %}
-                                <li>{{ solution }}</li>
-                                {% endfor %}
-                            </ol>
+                        <div class="health-section">
+                            <div class="health-chart">
+                                <div id="healthChart" style="width: 100%; height: 320px;"></div>
+                            </div>
+                            <div class="health-list">
+                                <div class="health-item">
+                                    <div class="health-top">
+                                        <span class="health-name">流量健康</span>
+                                        <span class="health-score">{{ result.health_score.traffic_health }}</span>
+                                    </div>
+                                    <div class="health-bar">
+                                        <div class="health-fill" style="width: {{ result.health_score.traffic_health }}%; background: linear-gradient(90deg, #1890ff, #096dd9);"></div>
+                                    </div>
+                                    <p class="health-desc">流量下降趋势明显，需重点关注</p>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-top">
+                                        <span class="health-name">转化健康</span>
+                                        <span class="health-score">{{ result.health_score.conversion_health }}</span>
+                                    </div>
+                                    <div class="health-bar">
+                                        <div class="health-fill" style="width: {{ result.health_score.conversion_health }}%; background: linear-gradient(90deg, #52c41a, #389e0d);"></div>
+                                    </div>
+                                    <p class="health-desc">转化率尚可，但有优化空间</p>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-top">
+                                        <span class="health-name">服务健康</span>
+                                        <span class="health-score">{{ result.health_score.service_health }}</span>
+                                    </div>
+                                    <div class="health-bar">
+                                        <div class="health-fill" style="width: {{ result.health_score.service_health }}%; background: linear-gradient(90deg, #faad14, #d48806);"></div>
+                                    </div>
+                                    <p class="health-desc">退款率过高，服务质量需改善</p>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-top">
+                                        <span class="health-name">财务健康</span>
+                                        <span class="health-score">{{ result.health_score.financial_health }}</span>
+                                    </div>
+                                    <div class="health-bar">
+                                        <div class="health-fill" style="width: {{ result.health_score.financial_health }}%; background: linear-gradient(90deg, #722ed1, #531dab);"></div>
+                                    </div>
+                                    <p class="health-desc">ROI勉强达标，推广依赖度过高</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
 
-        <div class="tab-content" id="daily">
-            <div class="section-card">
-                <h2 class="section-title">📅 店铺经营日报明细</h2>
-                <div class="table-responsive">
-                    <table class="data-table small-table">
-                        <thead>
-                            <tr>
-                                <th>日期</th>
-                                <th>访客数</th>
-                                <th>支付金额</th>
-                                <th>支付转化率</th>
-                                <th>退款率</th>
-                                <th>老客占比</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in result.daily_store | reverse %}
-                            <tr>
-                                <td>{{ row['日期'] }}</td>
-                                <td>{{ "{:,}".format(row['访客数']) }}</td>
-                                <td>¥{{ "%.2f"|format(row['支付金额']) }}</td>
-                                <td>{{ "%.2f"|format(row['支付转化率']) }}%</td>
-                                <td class="{{ 'text-red' if row['退款率'] > 15 else '' }}">{{ "%.2f"|format(row['退款率']) }}%</td>
-                                <td>{{ "%.2f"|format(row['老客占比']) }}%</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+                    <div class="section card-section">
+                        <div class="section-title">
+                            <h3>🔍 交叉分析</h3>
+                        </div>
+                        <div class="cross-grid">
+                            <div class="cross-card">
+                                <div class="cross-icon money">💰</div>
+                                <div class="cross-info">
+                                    <div class="cross-value">¥{{ "{:,.2f}".format(result.cross_analysis.paid_cost_total) }}</div>
+                                    <div class="cross-label">付费推广总花费</div>
+                                </div>
+                            </div>
+                            <div class="cross-card">
+                                <div class="cross-icon chart">📈</div>
+                                <div class="cross-info">
+                                    <div class="cross-value">¥{{ "{:,.2f}".format(result.cross_analysis.paid_transaction_total) }}</div>
+                                    <div class="cross-label">付费推广总成交</div>
+                                </div>
+                            </div>
+                            <div class="cross-card">
+                                <div class="cross-icon percent">📊</div>
+                                <div class="cross-info">
+                                    <div class="cross-value">{{ "%.1f"|format(result.cross_analysis.paid_gmv_ratio) }}%</div>
+                                    <div class="cross-label">付费成交占GMV比</div>
+                                </div>
+                            </div>
+                            <div class="cross-card">
+                                <div class="cross-icon cost">💸</div>
+                                <div class="cross-info">
+                                    <div class="cross-value">{{ "%.1f"|format(result.cross_analysis.cost_gmv_ratio) }}%</div>
+                                    <div class="cross-label">推广成本占GMV比</div>
+                                </div>
+                            </div>
+                            <div class="cross-card">
+                                <div class="cross-icon users">👥</div>
+                                <div class="cross-info">
+                                    <div class="cross-value">{{ "%.1f"|format(result.cross_analysis.old_customer_ratio) }}%</div>
+                                    <div class="cross-label">老客成交占比</div>
+                                </div>
+                            </div>
+                            <div class="cross-card">
+                                <div class="cross-icon roi">📣</div>
+                                <div class="cross-info">
+                                    <div class="cross-value">{{ "%.2f"|format(result.cross_analysis.avg_roas) }}倍</div>
+                                    <div class="cross-label">平均推广ROI</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-        <div class="tab-content" id="products">
-            <div class="section-card">
-                <h2 class="section-title">🏆 商品销售排行</h2>
-                <div class="table-responsive">
-                    <table class="data-table small-table">
-                        <thead>
-                            <tr>
-                                <th>排名</th>
-                                <th>商品名称</th>
-                                <th>访客数</th>
-                                <th>转化率</th>
-                                <th>支付金额</th>
-                                <th>访客价值</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in result.product_sales %}
-                            <tr>
-                                <td><span class="rank-badge {% if loop.index <= 3 %}rank-top{% endif %}">{{ loop.index }}</span></td>
-                                <td class="product-name">{{ row['商品名称'] }}</td>
-                                <td>{{ "{:,}".format(row['访客数']) }}</td>
-                                <td>{{ "%.2f"|format(row['转化率(%)']) }}%</td>
-                                <td>¥{{ "%.2f"|format(row['支付金额']) }}</td>
-                                <td>¥{{ "%.2f"|format(row['访客价值']) }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <div class="section card-section">
+                        <div class="section-title">
+                            <h3>📉 流量与GMV趋势</h3>
+                        </div>
+                        <div id="trendChart" style="width: 100%; height: 350px;"></div>
+                    </div>
                 </div>
+
+                <div class="tab-panel" id="diagnosis">
+                    <div class="section card-section">
+                        <div class="section-title">
+                            <h3>⚠️ 店铺综合诊断 — 问题清单</h3>
+                            <div class="problem-count">
+                                共发现 <span class="count-num">{{ result.problems|length }}</span> 个问题
+                                <span class="count-high">🔴 高 {{ result.problems | selectattr('severity', 'equalto', '高') | list | length }}</span>
+                                <span class="count-mid">🟡 中 {{ result.problems | selectattr('severity', 'equalto', '中') | list | length }}</span>
+                                <span class="count-low">🟢 低 {{ result.problems | selectattr('severity', 'equalto', '低') | list | length }}</span>
+                            </div>
+                        </div>
+                        <div class="problem-list">
+                            {% for problem in result.problems %}
+                            <div class="problem-card severity-{{ problem.severity }}">
+                                <div class="problem-left">
+                                    <div class="problem-rank">#{{ problem.id }}</div>
+                                    <div class="severity-tag severity-{{ problem.severity }}">{{ problem.severity }}度</div>
+                                </div>
+                                <div class="problem-main">
+                                    <h4 class="problem-title">{{ problem.description }}</h4>
+                                    <div class="problem-dimension">
+                                        <span class="dim-tag">{{ problem.impact_dimension }}</span>
+                                    </div>
+                                    <div class="problem-evidence">
+                                        <span class="evidence-label">📋 数据佐证：</span>
+                                        {{ problem.evidence }}
+                                    </div>
+                                </div>
+                                <div class="problem-right">
+                                    <div class="severity-icon">{{ '🔴' if problem.severity == '高' else '🟡' if problem.severity == '中' else '🟢' }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-panel" id="optimize">
+                    <div class="section card-section">
+                        <div class="section-title">
+                            <h3>💡 优化方案推荐</h3>
+                            <p class="section-subtitle">针对诊断出的问题，提供可落地的优化方案</p>
+                        </div>
+                        <div class="recommend-list">
+                            {% for rec in result.recommendations %}
+                            <div class="recommend-card severity-{{ rec.severity }}">
+                                <div class="rec-header">
+                                    <div class="rec-title-wrap">
+                                        <span class="severity-tag severity-{{ rec.severity }}">{{ rec.severity }}度</span>
+                                        <h4>{{ rec.problem_description }}</h4>
+                                    </div>
+                                    <div class="rec-effect">
+                                        <div class="effect-label">预期效果</div>
+                                        <div class="effect-value">{{ rec.expected_effect }}</div>
+                                    </div>
+                                </div>
+                                <div class="rec-body">
+                                    <div class="solutions-title">🛠️ 优化方案</div>
+                                    <ul class="solutions-list">
+                                        {% for sol in rec.solutions %}
+                                        <li>
+                                            <span class="sol-num">{{ loop.index }}</span>
+                                            <span class="sol-text">{{ sol }}</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-panel" id="data">
+                    <div class="section card-section">
+                        <div class="section-title">
+                            <h3>📋 数据明细</h3>
+                        </div>
+                        <div class="data-tabs">
+                            <button class="data-tab active" data-datatab="store">店铺经营日报</button>
+                            <button class="data-tab" data-datatab="ad">直通车日报</button>
+                            <button class="data-tab" data-datatab="product">商品销售排行</button>
+                        </div>
+
+                        <div class="data-tab-panel active" id="data-store">
+                            <div class="table-wrap">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>日期</th>
+                                            <th>访客数</th>
+                                            <th>支付金额</th>
+                                            <th>支付转化率</th>
+                                            <th>客单价</th>
+                                            <th>退款率</th>
+                                            <th>老客占比</th>
+                                            <th>加购率</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in result.daily_store | reverse %}
+                                        <tr>
+                                            <td>{{ row['日期'] }}</td>
+                                            <td>{{ "{:,}".format(row['访客数']) }}</td>
+                                            <td class="money">¥{{ "%.2f"|format(row['支付金额']) }}</td>
+                                            <td>{{ "%.2f"|format(row['支付转化率']) }}%</td>
+                                            <td>¥{{ "%.2f"|format(row['客单价']) }}</td>
+                                            <td class="{{ 'warn' if row['退款率'] > 15 else '' }}">{{ "%.2f"|format(row['退款率']) }}%</td>
+                                            <td>{{ "%.2f"|format(row['老客占比']) }}%</td>
+                                            <td>{{ "%.2f"|format(row['加购率']) }}%</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="data-tab-panel" id="data-ad">
+                            <div class="table-wrap">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>日期</th>
+                                            <th>展现量</th>
+                                            <th>点击量</th>
+                                            <th>点击率</th>
+                                            <th>花费</th>
+                                            <th>CPC</th>
+                                            <th>成交金额</th>
+                                            <th>ROI</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in result.daily_ad | reverse %}
+                                        <tr>
+                                            <td>{{ row['日期'] }}</td>
+                                            <td>{{ "{:,}".format(row['展现量']) }}</td>
+                                            <td>{{ "{:,}".format(row['点击量']) }}</td>
+                                            <td>{{ "%.2f"|format(row['点击率'] * 100) }}%</td>
+                                            <td class="money">¥{{ "%.2f"|format(row['花费']) }}</td>
+                                            <td>¥{{ "%.2f"|format(row['平均点击花费']) }}</td>
+                                            <td>¥{{ "%.2f"|format(row['总成交金额']) }}</td>
+                                            <td class="roas">{{ "%.2f"|format(row['投入产出比']) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="data-tab-panel" id="data-product">
+                            <div class="table-wrap">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>排名</th>
+                                            <th>商品名称</th>
+                                            <th>访客数</th>
+                                            <th>浏览量</th>
+                                            <th>转化率</th>
+                                            <th>支付买家</th>
+                                            <th>支付金额</th>
+                                            <th>访客价值</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in result.product_sales %}
+                                        <tr>
+                                            <td>
+                                                <span class="rank {{ 'top' if loop.index <= 3 else '' }}">{{ loop.index }}</span>
+                                            </td>
+                                            <td class="product-name">{{ row['商品名称'] }}</td>
+                                            <td>{{ "{:,}".format(row['访客数']) }}</td>
+                                            <td>{{ "{:,}".format(row['浏览量']) }}</td>
+                                            <td>{{ "%.2f"|format(row['转化率(%)']) }}%</td>
+                                            <td>{{ row['支付买家数'] }}</td>
+                                            <td class="money">¥{{ "%.2f"|format(row['支付金额']) }}</td>
+                                            <td>¥{{ "%.2f"|format(row['访客价值']) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </div>
+        </main>
+
+        <footer class="app-footer">
+            <div class="container">
+                <p>© 2026 淘宝店铺智能诊断系统 · 数据安全 · 本地处理</p>
+            </div>
+        </footer>
     </div>
 
     <script>
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
+        const resultData = {{ result | tojson }};
 
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const targetTab = btn.getAttribute('data-tab');
-
-                tabBtns.forEach(b => b.classList.remove('active'));
-                tabContents.forEach(c => c.classList.remove('active'));
-
-                btn.classList.add('active');
-                document.getElementById(targetTab).classList.add('active');
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const target = this.getAttribute('data-tab');
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(target).classList.add('active');
             });
+        });
+
+        document.querySelectorAll('.data-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const target = this.getAttribute('data-datatab');
+                document.querySelectorAll('.data-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.data-tab-panel').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('data-' + target).classList.add('active');
+            });
+        });
+
+        const healthChart = echarts.init(document.getElementById('healthChart'));
+        const healthOption = {
+            tooltip: { trigger: 'item' },
+            radar: {
+                indicator: [
+                    { name: '流量健康', max: 100 },
+                    { name: '转化健康', max: 100 },
+                    { name: '服务健康', max: 100 },
+                    { name: '财务健康', max: 100 }
+                ],
+                shape: 'circle',
+                splitNumber: 4,
+                axisName: {
+                    color: '#666',
+                    fontSize: 13,
+                    fontWeight: 500
+                },
+                splitLine: {
+                    lineStyle: { color: '#f0f0f0' }
+                },
+                splitArea: {
+                    show: true,
+                    areaStyle: {
+                        color: ['#fafafa', '#f5f5f5', '#fafafa', '#f5f5f5']
+                    }
+                },
+                axisLine: {
+                    lineStyle: { color: '#e8e8e8' }
+                }
+            },
+            series: [{
+                type: 'radar',
+                data: [{
+                    value: [
+                        resultData.health_score.traffic_health,
+                        resultData.health_score.conversion_health,
+                        resultData.health_score.service_health,
+                        resultData.health_score.financial_health
+                    ],
+                    name: '健康度评分',
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(24, 144, 255, 0.5)' },
+                            { offset: 1, color: 'rgba(114, 46, 209, 0.3)' }
+                        ])
+                    },
+                    lineStyle: {
+                        color: '#1890ff',
+                        width: 2
+                    },
+                    itemStyle: {
+                        color: '#1890ff',
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }
+                }]
+            }]
+        };
+        healthChart.setOption(healthOption);
+
+        const trendDates = resultData.daily_store.map(d => d['日期']).sort();
+        const trendVisitors = resultData.daily_store.map(d => d['访客数']);
+        const trendGmv = resultData.daily_store.map(d => d['支付金额']);
+
+        const trendChart = echarts.init(document.getElementById('trendChart'));
+        const trendOption = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'cross' }
+            },
+            legend: {
+                data: ['访客数', '支付金额'],
+                top: 0
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                top: 40,
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: trendDates,
+                axisLabel: {
+                    rotate: 30,
+                    fontSize: 11
+                }
+            },
+            yAxis: [
+                {
+                    type: 'value',
+                    name: '访客数',
+                    position: 'left',
+                    axisLabel: { formatter: '{value}' }
+                },
+                {
+                    type: 'value',
+                    name: '支付金额(元)',
+                    position: 'right',
+                    axisLabel: { formatter: '{value}' }
+                }
+            ],
+            series: [
+                {
+                    name: '访客数',
+                    type: 'line',
+                    data: trendVisitors,
+                    smooth: true,
+                    lineStyle: { color: '#1890ff', width: 2 },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(24, 144, 255, 0.3)' },
+                            { offset: 1, color: 'rgba(24, 144, 255, 0.02)' }
+                        ])
+                    },
+                    itemStyle: { color: '#1890ff' }
+                },
+                {
+                    name: '支付金额',
+                    type: 'line',
+                    yAxisIndex: 1,
+                    data: trendGmv,
+                    smooth: true,
+                    lineStyle: { color: '#fa541c', width: 2 },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(250, 84, 28, 0.25)' },
+                            { offset: 1, color: 'rgba(250, 84, 28, 0.02)' }
+                        ])
+                    },
+                    itemStyle: { color: '#fa541c' }
+                }
+            ]
+        };
+        trendChart.setOption(trendOption);
+
+        window.addEventListener('resize', function() {
+            healthChart.resize();
+            trendChart.resize();
         });
     </script>
 </body>
